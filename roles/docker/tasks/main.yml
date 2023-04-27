@@ -9,7 +9,38 @@
 
 - name: docker uninstall tasks
   tags: docker_uninstall
+  become: true
   block:
-  - name: Print message
-    ansible.builtin.debug:
-      msg: "uninstalling docker"
+
+  - name: Uninstall packages
+    ansible.builtin.apt:
+      name: "{{ item }}"
+      state: absent
+      purge: true
+    loop:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io 
+      - docker-buildx-plugin
+      - docker-compose-plugin
+      - docker-ce-rootless-extras
+
+  - name: Remove images, containers, volumes, and custom configs
+    ansible.builtin.file:
+      path: "{{ item }}"
+      state: absent
+    loop:
+      - /var/lib/docker
+      - /var/lib/containerd
+
+  - name: Remove Docker signing keys
+    ansible.builtin.file:
+      path: "{{ item }}"
+      state: absent
+    loop:
+      - /etc/apt/keyrings/docker.gpg
+      - /etc/apt/sources.list.d/docker.list
+
+  - name: Update apt cache
+    ansible.builtin.apt:
+      update_cache: yes

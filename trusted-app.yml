@@ -1,8 +1,15 @@
 ---
-- name: Installing trusted app
+- name: Executing trusted app
   gather_facts: true
   hosts: localhost
   vars_files: group_vars/vars.yml
+
+  pre_tasks:
+  - name: Ensure temp dir in playbook dir
+    ansible.builtin.file:
+      path: "{{hostvars['localhost']['playbook_dir']}}/temp"
+      state: directory
+    tags: always
 
   roles:
     - docker
