@@ -1,5 +1,5 @@
 ---
-- name: docker install tasks
+- name: Docker install tasks
   tags: docker_install
   block:
   - name: Print message
@@ -7,7 +7,7 @@
       msg: "installing docker"
 
 
-- name: docker uninstall tasks
+- name: Docker uninstall tasks
   tags: docker_uninstall
   become: true
   block:
@@ -20,7 +20,7 @@
     loop:
       - docker-ce
       - docker-ce-cli
-      - containerd.io 
+      - containerd.io
       - docker-buildx-plugin
       - docker-compose-plugin
       - docker-ce-rootless-extras
@@ -43,4 +43,4 @@
 
   - name: Update apt cache
     ansible.builtin.apt:
-      update_cache: yes
+      update_cache: true

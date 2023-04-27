@@ -7,8 +7,9 @@
   pre_tasks:
   - name: Ensure temp dir in playbook dir
     ansible.builtin.file:
-      path: "{{hostvars['localhost']['playbook_dir']}}/temp"
+      path: "{{ hostvars['localhost']['playbook_dir'] }}/temp"
       state: directory
+      mode: "0775"
     tags: always
 
   roles:
