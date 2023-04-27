@@ -1,0 +1,1 @@
+# trusted-app-install-with-ansible
