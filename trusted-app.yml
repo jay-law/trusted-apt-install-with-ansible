@@ -9,7 +9,7 @@
     ansible.builtin.file:
       path: "{{ hostvars['localhost']['playbook_dir'] }}/temp"
       state: directory
-      mode: "0775"
+      mode: "775"
     tags: always
 
   roles:

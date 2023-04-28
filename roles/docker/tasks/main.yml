@@ -1,30 +1,139 @@
 ---
 - name: Docker install tasks
   tags: docker_install
+  become: true
   block:
-  - name: Print message
-    ansible.builtin.debug:
-      msg: "installing docker"
 
+  # sudo apt-get remove docker docker-engine docker.io containerd runc
+  - name: Remove old versions
+    ansible.builtin.apt:
+      pkg:
+      - docker
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+      state: absent
+
+  # sudo apt-get install ca-certificates curl gnupg
+  - name: Install dependencies
+    ansible.builtin.apt:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+
+  # curl -fsSL https://download.docker.com/linux/ubuntu/gpg
+  - name: Download key (stored in PGP format)
+    ansible.builtin.get_url:
+      url: "{{ docker.gpg_key_uri }}"
+      dest: "{{ temp_dir }}/docker.pgp"
+      mode: '0775'
+
+  # sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - name: Convert from PGP to GPG format
+    ansible.builtin.command:
+      chdir: "{{ temp_dir }}"
+      cmd: "gpg -o docker.gpg --dearmor docker.pgp"
+      creates: docker.gpg
+
+  # The remaining tasks accomplish the same end result as this
+  # large single command provided in the Docker documentation
+  # echo \
+  # "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  # "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+  # sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - name: Copy docker.gpg to /keyrings
+    ansible.builtin.copy:
+      src: temp/docker.gpg
+      dest: /etc/apt/keyrings/docker.gpg
+      owner: root
+      group: root
+      mode: a+r
+
+  - name: Create sources.list.d/docker.list
+    ansible.builtin.file:
+      path: /etc/apt/sources.list.d/docker.list
+      state: touch
+      owner: root
+      group: root
+      mode: '0644'
+
+  # For 64 bit, Ansible facts will contain x86_64 but amd64 is required
+  - name: Get host CPU architecture
+    ansible.builtin.command:
+      cmd: "dpkg --print-architecture"
+    changed_when: false
+    register: deb_architecture
+
+  - name: Add Docker repo to sources.list.d
+    ansible.builtin.lineinfile:
+      path: /etc/apt/sources.list.d/docker.list
+      line: >-
+        deb [arch={{ deb_architecture['stdout'] }} signed-by=/etc/apt/keyrings/docker.gpg]
+        https://download.docker.com/linux/ubuntu
+        {{ hostvars['localhost']['ansible_distribution_release'] }} stable
+      create: true
+      mode: '0644'
+
+  # sudo apt-get update
+  # sudo apt-get install docker-ce docker-ce-cli containerd.io
+  # docker-buildx-plugin docker-compose-plugin
+  - name: Install Docker
+    ansible.builtin.apt:
+      pkg:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-buildx-plugin
+        - docker-compose-plugin
+      update_cache: true
+      state: present
+
+  # Installing Docker with the ansible.builtin.apt task directly above
+  # can sometimes throw an issue.  I've only experienced this issue when
+  # creating this tutorial.  See "No Available Socket when Installing
+  # Docker" in docs/ISSUES.md for more information.  Hopefully it isn't
+  # needed.
+  rescue:
+    - name: Update docker.service
+      ansible.builtin.replace:
+        path: /lib/systemd/system/docker.service
+        regexp: 'fd://'
+        replace: 'unix://'
+
+    - name: Reload docker service
+      ansible.builtin.systemd:
+        state: restarted
+        daemon_reload: true
+        name: docker
+
+###
 
 - name: Docker uninstall tasks
   tags: docker_uninstall
   become: true
   block:
 
+  # sudo apt-get purge docker-ce docker-ce-cli containerd.io
+  # docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras
   - name: Uninstall packages
     ansible.builtin.apt:
-      name: "{{ item }}"
-      state: absent
-      purge: true
-    loop:
+      pkg:
       - docker-ce
       - docker-ce-cli
       - containerd.io
       - docker-buildx-plugin
       - docker-compose-plugin
       - docker-ce-rootless-extras
+      state: absent
+      purge: true
 
+  # sudo rm -rf /var/lib/docker
+  # sudo rm -rf /var/lib/containerd
   - name: Remove images, containers, volumes, and custom configs
     ansible.builtin.file:
       path: "{{ item }}"
@@ -33,6 +142,8 @@
       - /var/lib/docker
       - /var/lib/containerd
 
+  # This isn't in the documentation but has been included to
+  # fully test the install block
   - name: Remove Docker signing keys
     ansible.builtin.file:
       path: "{{ item }}"

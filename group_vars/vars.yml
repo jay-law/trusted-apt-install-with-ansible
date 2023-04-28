@@ -1,1 +1,8 @@
 ---
+temp_dir: "{{ playbook_dir }}/temp"
+
+docker:
+  # Source - https://docs.docker.com/engine/install/ubuntu/#uninstall-docker-engine
+  gpg_key_uri: https://download.docker.com/linux/ubuntu/gpg
+  # Source - Manual
+  fingerprint: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
