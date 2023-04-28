@@ -9,7 +9,14 @@
     ansible.builtin.file:
       path: "{{ hostvars['localhost']['playbook_dir'] }}/temp"
       state: directory
-      mode: "775"
+      mode: '0644'
+    tags: always
+
+  - name: Copy facts to file
+    ansible.builtin.copy:
+      content: "{{ ansible_facts }}"
+      dest: "{{ hostvars['localhost']['playbook_dir'] }}/temp/facts.json"
+      mode: '0644'
     tags: always
 
   roles:
