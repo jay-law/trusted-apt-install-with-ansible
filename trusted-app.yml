@@ -7,17 +7,18 @@
   pre_tasks:
   - name: Ensure temp dir in playbook dir
     ansible.builtin.file:
-      path: "{{ hostvars['localhost']['playbook_dir'] }}/temp"
+      path: "{{ temp_dir }}"
       state: directory
-      mode: '0644'
+      mode: '0755'
     tags: always
 
   - name: Copy facts to file
     ansible.builtin.copy:
       content: "{{ ansible_facts }}"
-      dest: "{{ hostvars['localhost']['playbook_dir'] }}/temp/facts.json"
-      mode: '0644'
+      dest: "{{ temp_dir }}/facts.json"
+      mode: '0755'
     tags: always
 
   roles:
     - docker
+    - mullvad

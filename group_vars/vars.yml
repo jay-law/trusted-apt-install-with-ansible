@@ -6,3 +6,11 @@ docker:
   gpg_key_uri: https://download.docker.com/linux/ubuntu/gpg
   # Source - Manual
   fingerprint: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+
+mullvad:
+  # Source - https://mullvad.net/en/download/vpn/linux
+  package_uri: https://mullvad.net/en/download/app/deb/latest
+  gpg_key_uri: https://mullvad.net/en/download/app/deb/latest/signature
+  # Source - https://mullvad.net/en/help/verifying-signatures/
+  fingerprint: A1198702FC3E0A09A9AE5B75D5A1D4F266DE8DDF
+  fingerprint_and_trust: "A1198702FC3E0A09A9AE5B75D5A1D4F266DE8DDF:6:"

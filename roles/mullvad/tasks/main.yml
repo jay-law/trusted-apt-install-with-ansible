@@ -1,0 +1,68 @@
+---
+- name: Mullvad install tasks
+  tags: mullvad_install
+  block:
+
+    - name: Check trust level of Mullvad signing key
+      ansible.builtin.command:
+        cmd: "gpg --export-ownertrust"
+      changed_when: false
+      register: trusted_out
+
+    - name: Ensure Mullvad signing key is trusted
+      ansible.builtin.fail:
+        msg:
+          - Mullvad signing key isn't trusted or isn't trusted enough
+          - Check the README.md for instructions on setting trust
+      when: mullvad['fingerprint_and_trust'] not in trusted_out.stdout
+
+    # curl -fsSL https://mullvad.net/en/download/app/deb/latest > temp/MullvadVPN-2023.3_amd64.deb
+    - name: Download package
+      ansible.builtin.get_url:
+        url: "{{ mullvad['package_uri'] }}"
+        dest: "{{ temp_dir }}"
+        mode: "0775"
+      register: package_path
+
+    - name: Set package name
+      ansible.builtin.set_fact:
+        package_name: "{{ package_path['dest'] | split('/') | last }}"
+        # package_name: "MullvadVPN-2023.3_amd64.deb"
+
+    # curl -fsSL https://mullvad.net/en/download/app/deb/latest/signature > temp/MullvadVPN-2023.3_amd64.deb.asc
+    - name: Download gpg key
+      ansible.builtin.get_url:
+        url: "{{ mullvad['gpg_key_uri'] }}"
+        dest: "{{ temp_dir }}"
+        mode: "0775"
+
+    # gpg --verify temp/MullvadVPN-*.deb.asc
+    - name: Verify download
+      ansible.builtin.command:
+        chdir: "{{ temp_dir }}"
+        cmd: "gpg --verify {{ package_name }}.asc"
+      changed_when: false
+      register: verify_out
+
+    # sudo apt install MullvadVPN-2023.3_amd64.deb
+    # Notice that stderr is checked
+    - name: Install Mullvad
+      ansible.builtin.apt:
+        deb: "{{ temp_dir }}/{{ package_name }}"
+      become: true
+      when: "'Good signature from \"Mullvad (code signing) <admin@mullvad.net>\" [ultimate]' in verify_out.stderr"
+
+###
+
+- name: Mullvad uninstall tasks
+  tags: mullvad_uninstall
+  become: true
+  block:
+
+  # sudo apt purge mullvad-vpn -y
+  - name: Uninstall packages
+    ansible.builtin.apt:
+      pkg: mullvadvpn
+      state: absent
+      purge: true
+      update_cache: true
