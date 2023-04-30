@@ -24,20 +24,19 @@
       - ca-certificates
       - curl
       - gnupg
-      - lsb-release
 
-  # curl -fsSL https://download.docker.com/linux/ubuntu/gpg
-  - name: Download key (stored in PGP format)
+  # curl -fsSL https://download.docker.com/linux/ubuntu/gpg > temp/docker.asc
+  - name: Download key
     ansible.builtin.get_url:
       url: "{{ docker.gpg_key_uri }}"
-      dest: "{{ temp_dir }}/docker.pgp"
+      dest: "{{ temp_dir }}/docker.asc"
       mode: '0775'
 
   # sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
   - name: Convert from PGP to GPG format
     ansible.builtin.command:
       chdir: "{{ temp_dir }}"
-      cmd: "gpg -o docker.gpg --dearmor docker.pgp"
+      cmd: "gpg -o docker.gpg --dearmor docker.asc"
       creates: docker.gpg
 
   # The remaining tasks accomplish the same end result as this
@@ -94,7 +93,7 @@
       state: present
 
   # Installing Docker with the ansible.builtin.apt task directly above
-  # can sometimes throw an issue.  I've only experienced this issue when
+  # can sometimes throw an error.  I've only experienced this issue when
   # creating this tutorial.  See "No Available Socket when Installing
   # Docker" in docs/ISSUES.md for more information.  Hopefully it isn't
   # needed.

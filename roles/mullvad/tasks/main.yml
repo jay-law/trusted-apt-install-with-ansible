@@ -27,6 +27,7 @@
     - name: Set package name
       ansible.builtin.set_fact:
         package_name: "{{ package_path['dest'] | split('/') | last }}"
+        # Uncomment for testing without redownloading package each time
         # package_name: "MullvadVPN-2023.3_amd64.deb"
 
     # curl -fsSL https://mullvad.net/en/download/app/deb/latest/signature > temp/MullvadVPN-2023.3_amd64.deb.asc
